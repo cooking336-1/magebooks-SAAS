@@ -14,7 +14,8 @@
       "Bash(curl -s \"https://www.figma.com/api/mcp/asset/7728a9aa-aafb-4c52-947e-78b9462db549.svg\" -o recommended-check.svg)",
       "Bash(curl -s \"https://www.figma.com/api/mcp/asset/b461858f-5a1b-4300-819f-abca824cc021.svg\" -o settings.svg)",
       "Bash(curl -s \"https://www.figma.com/api/mcp/asset/05800922-bbda-4f39-af87-7f5b85914f2d.svg\" -o info.svg)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(curl -s \"https://www.figma.com/api/mcp/asset/75f37884-b727-40e9-baf8-aa59b3e75408.png\" -o /c/Users/LENOVO/Desktop/Vscode/websites/magebooks-SAAS/public/assets/loading-bg.png)"
     ]
   }
 }
