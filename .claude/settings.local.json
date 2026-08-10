@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__plugin_figma_figma__get_metadata",
+      "mcp__plugin_figma_figma__get_design_context",
+      "Bash(npx create-next-app@latest:*)",
+      "Bash(cp:*)",
+      "Bash(mkdir -p /c/Users/LENOVO/Desktop/Vscode/websites/magebooks-SAAS/public/assets)",
+      "Bash(curl -s \"https://www.figma.com/api/mcp/asset/e96e4ad7-5a0b-4f69-a55a-24f4900142e5.svg\" -o /c/Users/LENOVO/Desktop/Vscode/websites/magebooks-SAAS/public/assets/logo-icon.svg)",
+      "Bash(curl -s \"https://www.figma.com/api/mcp/asset/073175aa-1270-40a6-9ef7-6c8f47468ef8.svg\" -o /c/Users/LENOVO/Desktop/Vscode/websites/magebooks-SAAS/public/assets/check.svg)",
+      "Bash(curl -s \"https://www.figma.com/api/mcp/asset/ca735ceb-83ae-4a7b-b5c8-b5d03c34df31.svg\" -o /c/Users/LENOVO/Desktop/Vscode/websites/magebooks-SAAS/public/assets/arrow-right.svg)",
+      "Bash(curl -s \"https://www.figma.com/api/mcp/asset/359a338d-3f9f-4bf9-9942-061149b9437d.svg\" -o lightning.svg)",
+      "Bash(curl -s \"https://www.figma.com/api/mcp/asset/6172f233-b9c7-4497-aada-deca417e893e.svg\" -o bank.svg)",
+      "Bash(curl -s \"https://www.figma.com/api/mcp/asset/7728a9aa-aafb-4c52-947e-78b9462db549.svg\" -o recommended-check.svg)",
+      "Bash(curl -s \"https://www.figma.com/api/mcp/asset/b461858f-5a1b-4300-819f-abca824cc021.svg\" -o settings.svg)",
+      "Bash(curl -s \"https://www.figma.com/api/mcp/asset/05800922-bbda-4f39-af87-7f5b85914f2d.svg\" -o info.svg)",
+      "Bash(npm run:*)"
+    ]
+  }
+}
