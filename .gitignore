@@ -32,8 +32,8 @@ yarn-error.log*
 
 # env files
 .env
-.env.*
-!.env.example
+.env.local
+.env.*.local
 
 # python & backend
 __pycache__/
