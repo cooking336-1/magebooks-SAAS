@@ -15,7 +15,7 @@
 
 To ensure disciplined code execution, strict ledger integrity, and zero regressions across the 5 sprints, every human developer and autonomous AI agent (including Antigravity) must strictly adhere to the following six engineering mandates:
 
-1\. Feature-by-Feature Implementation & Branching Protocol: Development must proceed strictly feature by feature. Developers and agents must never implement multiple features at once or commit directly to the main or develop branches. For each feature, create a dedicated branch ('feat/\<sprint\>-\<feature-name\>'). Implement the required code, execute automated unit tests against in-memory SQLite, and then halt to let the user review, commit, and push the branch to GitHub. Only upon explicit user confirmation does the agent proceed to the next feature.
+1\. Feature-by-Feature Implementation, PR Merge Gate & Branch Cleanup Protocol: Development must proceed strictly feature by feature. Developers and agents must never implement multiple features at once or commit directly to the main or develop branches. For each feature, create a dedicated branch without sprint prefixes ('feat/\<feature-name\>'). Before starting any new feature, the agent must ALWAYS check whether the PR for the previous feature has been merged into 'develop'. If merged, delete both the local branch and the remote branch, pull the latest 'develop', and only then create the next feature branch.
 
 2\. Human-in-the-Loop Migration Authorization: Autonomous agents are strictly forbidden from automatically executing 'python manage.py migrate' against development or production PostgreSQL databases. The agent must generate migration scripts using 'makemigrations', inspect the generated SQL using 'sqlmigrate \<app\> \<migration\_number\>', output the SQL inspection to the user, and explicitly pause to ask for confirmation before applying any changes.
 
@@ -25,35 +25,48 @@ To ensure disciplined code execution, strict ledger integrity, and zero regressi
 
 5\. Isolated Testing Protocol with SQLite: All automated unit and integration tests must run against SQLite in-memory (:memory:), dynamically selected by the test runner in config/settings.py. PostgreSQL is reserved strictly for development and production workloads. Automated tests must execute in under 5 seconds.
 
-6\. Modern Python Tooling via uv and ruff: Package installation, environment locking, and script execution must be performed using 'uv' ('uv add', 'uv run', 'uv sync'). Formatting and linting must be strictly verified using 'ruff' ('ruff check .', 'ruff format .') before any feature hand-off.
+6\. Modern Python Tooling & Strict Virtual Environment Execution via uv and ruff: All package installation, environment locking, and script execution must be performed using 'uv' ('uv add', 'uv run', 'uv sync'). Developers and agents must NEVER invoke global/system Python directly. All commands must be run via 'uv run' (e.g. 'uv run python manage.py ...') or within the active virtual environment ('.venv') to prevent 'ModuleNotFoundError' on installed packages. Formatting and linting must be strictly verified using 'ruff' ('ruff check .', 'ruff format .') before any feature hand-off.
 
 **2\. Project Tooling, Environment & Single Settings Configuration**
 
 The backend standardizes on Python 3.12 (or 3.14), uv, and ruff. The entire runtime configuration is managed through a single 'config/settings.py' file utilizing 'django-environ'. This eliminates environment drift while providing rock-solid type casting and graceful .env fallback:
 
-| \# config/settings.pyfrom pathlib import Pathimport sysimport environ\# Build paths inside the project like this: BASE\_DIR / 'subdir'.BASE\_DIR \= Path(\_\_file\_\_).resolve().parent.parent\# 1\. Initialize environ with explicit type casting and safe fallback defaultsenv \= environ.Env(    DJANGO\_DEBUG=(bool, False),    DJANGO\_SECRET\_KEY=(str, "django-insecure-magebooks-dev-key"),    DJANGO\_ALLOWED\_HOSTS=(list, \["\*"\]),    DJANGO\_CORS\_ALLOWED\_ORIGINS=(list, \["http://localhost:3000"\]),)\# 2\. Read .env file from BASE\_DIR (if present)\# Does not fail if .env is missing (e.g. in containerized production environments)environ.Env.read\_env(BASE\_DIR / ".env")\# 3\. Pull variables (automatically type-cast by environ)SECRET\_KEY \= env("DJANGO\_SECRET\_KEY")DEBUG \= env("DJANGO\_DEBUG")ALLOWED\_HOSTS \= env("DJANGO\_ALLOWED\_HOSTS")INSTALLED\_APPS \= \[    "django.contrib.admin",    "django.contrib.auth",    "django.contrib.contenttypes",    "django.contrib.sessions",    "django.contrib.messages",    "django.contrib.staticfiles",    \# Third-party extensions    "rest\_framework",    "corsheaders",    "storages",    \# Core Domain Apps    "apps.core",    "apps.authentication",    "apps.tenancy",    "apps.ledger",    "apps.tax",    "apps.invoicing",    "apps.payments",    "apps.payroll",    "apps.audit",\]\# Database Routing: In-Memory SQLite for Automated Tests, PostgreSQL for Dev/ProdIS\_TESTING \= "test" in sys.argv or "pytest" in sys.modulesif IS\_TESTING:    DATABASES \= {        "default": {            "ENGINE": "django.db.backends.sqlite3",            "NAME": ":memory:",        }    }else:    DATABASES \= {        "default": env.db("DATABASE\_URL", default="postgres://postgres:postgres@localhost:5432/magebooks\_db")    }\# Cloudflare R2 Object Storage (S3-Compatible)CLOUDFLARE\_R2\_ACCESS\_KEY\_ID \= env("R2\_ACCESS\_KEY\_ID", default="")CLOUDFLARE\_R2\_SECRET\_ACCESS\_KEY \= env("R2\_SECRET\_ACCESS\_KEY", default="")CLOUDFLARE\_R2\_BUCKET\_NAME \= env("R2\_BUCKET\_NAME", default="magebooks-prod")CLOUDFLARE\_R2\_ENDPOINT\_URL \= env("R2\_ENDPOINT\_URL", default="") |
+| \# config/settings.py from pathlib import Path import sys import environ  \# Build paths inside the project like this: BASE\_DIR / 'subdir'. BASE\_DIR \= Path(\_\_file\_\_).resolve().parent.parent  \# 1\. Initialize environ with explicit type casting and safe fallback defaults env \= environ.Env(     DJANGO\_DEBUG=(bool, False),     DJANGO\_SECRET\_KEY=(str, "django-insecure-magebooks-dev-key"),     DJANGO\_ALLOWED\_HOSTS=(list, \["\*"\]),     DJANGO\_CORS\_ALLOWED\_ORIGINS=(list, \["http://localhost:3000"\]), )  \# 2\. Read .env file from BASE\_DIR (if present) \# Does not fail if .env is missing (e.g. in containerized production environments) environ.Env.read\_env(BASE\_DIR / ".env")  \# 3\. Pull variables (automatically type-cast by environ) SECRET\_KEY \= env("DJANGO\_SECRET\_KEY") DEBUG \= env("DJANGO\_DEBUG") ALLOWED\_HOSTS \= env("DJANGO\_ALLOWED\_HOSTS")  INSTALLED\_APPS \= \[     "django.contrib.admin",     "django.contrib.auth",     "django.contrib.contenttypes",     "django.contrib.sessions",     "django.contrib.messages",     "django.contrib.staticfiles",     \# Third-party extensions     "rest\_framework",     "corsheaders",     "storages",     \# Core Domain Apps     "apps.core",     "apps.authentication",     "apps.tenancy",     "apps.ledger",     "apps.tax",     "apps.invoicing",     "apps.payments",     "apps.payroll",     "apps.audit", \]  \# Database Routing: In-Memory SQLite for Automated Tests, PostgreSQL for Dev/Prod IS\_TESTING \= "test" in sys.argv or "pytest" in sys.modules  if IS\_TESTING:     DATABASES \= {         "default": {             "ENGINE": "django.db.backends.sqlite3",             "NAME": ":memory:",         }     } else:     DATABASES \= {         "default": env.db("DATABASE\_URL", default="postgres://postgres:postgres@localhost:5432/magebooks\_db")     }  \# Cloudflare R2 Object Storage (S3-Compatible) CLOUDFLARE\_R2\_ACCESS\_KEY\_ID \= env("R2\_ACCESS\_KEY\_ID", default="") CLOUDFLARE\_R2\_SECRET\_ACCESS\_KEY \= env("R2\_SECRET\_ACCESS\_KEY", default="") CLOUDFLARE\_R2\_BUCKET\_NAME \= env("R2\_BUCKET\_NAME", default="magebooks-prod") CLOUDFLARE\_R2\_ENDPOINT\_URL \= env("R2\_ENDPOINT\_URL", default="") |
 | :---- |
 
 &nbsp;
 
 **3\. Feature-by-Feature Git Lifecycle & Hand-off Protocol**
 
-To ensure complete transparency and code review between the autonomous agent and the project owner, every single feature follows a strict four-phase execution loop:
+To ensure complete transparency and code review between the autonomous agent and the project owner, every single feature follows a strict execution loop:
+
+**Phase 0: Pre-Feature PR Merge Verification & Branch Cleanup Gate**
+
+Before writing a single line of code or creating a new feature branch, the agent must ALWAYS check whether the PR for the previous feature has been merged into 'develop':
+1. If the previous PR is merged:
+   - Switch to 'develop' and pull latest upstream commits:
+     `git checkout develop && git pull origin develop`
+   - Delete the merged local branch:
+     `git branch -d feat/<previous-feature-name>`
+   - Delete the merged remote branch:
+     `git push origin --delete feat/<previous-feature-name>`
+2. If the previous PR is NOT yet merged:
+   - The agent must halt and wait for the user to confirm that the PR has been reviewed and merged into 'develop'.
 
 **Phase A: Feature Branch Creation**
 
-Before writing a single line of code for any feature, verify that the working tree is clean and branch off the 'develop' branch:
+Once 'develop' is fully updated and old branches are cleaned up, verify that the working tree is clean and create the new feature branch:
 
-| git checkout developgit pull origin developgit checkout \-b feat/\<sprint\>-\<feature-name\> |
+| git checkout -b feat/\<feature-name\> |
 | :---- |
 
 &nbsp;
 
 **Phase B: Test-Driven Implementation & SQLite Verification**
 
-Implement the feature's models, services, views, and unit tests. Run linting and automated tests against the in-memory SQLite runner to guarantee 100% test pass rates:
+Implement the feature's models, services, views, and unit tests. Run linting and automated tests against the in-memory SQLite runner using 'uv run' to guarantee 100% test pass rates:
 
-| \# Run fast linting and formatting checksuv run ruff check .uv run ruff format .\# Execute isolated in-memory SQLite test suiteuv run python manage.py test apps.\<app\_name\> |
+| \# Run fast linting and formatting checks uv run ruff check . uv run ruff format .  \# Execute isolated in-memory SQLite test suite uv run python manage.py test apps.\<app\_name\> |
 | :---- |
 
 &nbsp;
@@ -62,7 +75,7 @@ Implement the feature's models, services, views, and unit tests. Run linting and
 
 If the feature introduces or mutates database models, generate the migration and inspect the raw SQL. The agent must output this SQL to the user and request approval before proceeding:
 
-| uv run python manage.py makemigrations \<app\_name\>uv run python manage.py sqlmigrate \<app\_name\> \<migration\_number\>\# \[PAUSE\]: Prompt user for confirmation before running 'migrate'. |
+| uv run python manage.py makemigrations \<app\_name\> uv run python manage.py sqlmigrate \<app\_name\> \<migration\_number\> \# \[PAUSE\]: Prompt user for confirmation before running 'migrate'. |
 | :---- |
 
 &nbsp;
@@ -71,12 +84,12 @@ If the feature introduces or mutates database models, generate the migration and
 
 Once tests pass, the agent halts and presents the exact git command sequence to the user. The user reviews the git diff and pushes the branch to GitHub:
 
-| git statusgit add .git commit \-m "feat(\<scope\>): implement \<feature description\>"git push \-u origin feat/\<sprint\>-\<feature-name\> |
+| git status git add . git commit \-m "feat(\<scope\>): implement \<feature description\>" git push \-u origin feat/\<feature-name\> |
 | :---- |
 
 &nbsp;
 
-The agent waits for the user to confirm: 'Branch pushed, continue to next feature'. The agent then checks out develop and repeats the loop for the next numbered feature.
+The agent waits for the user to confirm that the branch has been pushed and the pull request opened. The agent then loops back to **Phase 0** before starting the next feature.
 
 **4\. Sprint 1: Core Foundation, Multi-Tenancy & Dual-UUID Engine**
 

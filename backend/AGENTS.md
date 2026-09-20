@@ -18,11 +18,28 @@ Mage Books is a specialized enterprise accounting, invoicing, and statutory tax 
 
 Every autonomous coding agent working in this repository must strictly adhere to these 6 rules:
 
-1. **Feature-by-Feature Branching & Push Protocol:**
+1. **Feature-by-Feature Branching, PR Merge Gate & Cleanup Protocol:**
    * Never implement multiple features at once.
    * Never commit directly to `main` or `develop`.
-   * For each feature, create a dedicated branch: `feat/<sprint>-<feature-name>`.
-   * Complete implementation, ensure 100% test pass rates and zero linter warnings, then **halt and present the Git commit command to the user**. Wait for user confirmation that the branch has been pushed to GitHub before moving to the next feature.
+   * **Branch Naming**: Omit sprint prefixes; name branches cleanly: `feat/<feature-name>`.
+   * **Human-in-the-Loop Push Gate**: Complete implementation, ensure 100% test pass rates and zero linter warnings, then **halt and present the Git commit and push commands to the user**. Wait for user confirmation that the branch has been pushed and a PR opened.
+   * **Mandatory Pre-Feature PR Merge Check & Branch Cleanup**:
+     Before moving onto or creating a branch for any new feature, **ALWAYS check if the PR opened for the previous feature has been merged into `develop`**:
+     1. If the PR has been merged:
+        - Switch to `develop` and pull latest upstream changes:
+          ```bash
+          git checkout develop
+          git pull origin develop
+          ```
+        - Delete the merged **local branch**:
+          ```bash
+          git branch -d feat/<previous-feature-name>
+          ```
+        - Delete the merged **remote branch**:
+          ```bash
+          git push origin --delete feat/<previous-feature-name>
+          ```
+     2. If the PR has NOT yet been merged, halt and wait for user confirmation that the PR has been merged into `develop`. Do NOT begin work on the next feature until previous branches are cleaned up and `develop` is up to date.
 2. **Human-in-the-Loop Database Migration Gate:**
    * **NEVER automatically run `python manage.py migrate`** against PostgreSQL or production databases.
    * Generate migration files with `makemigrations <app>`, inspect the raw SQL with `sqlmigrate <app> <number>`, display the SQL to the user, and explicitly pause for user authorization before running `migrate`.
@@ -35,7 +52,8 @@ Every autonomous coding agent working in this repository must strictly adhere to
 5. **Deterministic Mock Service Adapters:**
    * When integrating external APIs (Paystack, Hubtel, GRA E-VAT, Cloudflare R2), prompt the user for live credentials.
    * Concurrently, always maintain and use deterministic Mock Service Adapters (`MockPaystackGateway`, `MockHubtelGateway`, `MockGraEvatClient`, `MockR2Storage`) so tests and local builds never depend on external network availability.
-6. **Modern Tooling via `uv` and `ruff`:**
+6. **Modern Tooling & Virtual Environment Execution via `uv` and `ruff`:**
+   * **Strict Virtual Environment Execution**: NEVER run `python` or `manage.py` directly using system/global Python. Always execute all backend scripts, management commands, and test runners through `uv run` (e.g. `uv run python manage.py <command>`) or from within the active virtual environment (`.venv`). Running with global Python will trigger `ModuleNotFoundError` for project dependencies.
    * Use `uv` (`uv init`, `uv add`, `uv run`, `uv sync`) for all Python package management.
    * Enforce linting and formatting via `uv run ruff check .` and `uv run ruff format .` prior to every commit.
 
